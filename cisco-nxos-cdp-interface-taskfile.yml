@@ -1,0 +1,16 @@
+---
+#- name: loop through for processing
+#  when: item == "trunk"
+#  ansible.builtin.debug:
+#    msg: "{{ cdp_loop.device_id }} on {{ cdp_loop.intf_id }}"
+#  loop: "{{ gather_info.ansible_facts.ansible_net_interfaces | dict2items | selectattr('key','equalto',cdp_loop.intf_id) | selectattr('value.mode','defined') | map(attribute='value.mode') | default('access') }}"
+
+
+- name: Update interface descpription when it's a trunk port using Merge
+  when: item == "trunk"
+  check_mode: true
+  cisco.nxos.nxos_interfaces:
+    config:
+    - name: "{{ cdp_loop.intf_id }}"
+      description: "{{ cdp_loop.device_id }} on {{ cdp_loop.port_id }}"
+  loop: "{{ gather_info.ansible_facts.ansible_net_interfaces | dict2items | selectattr('key','equalto',cdp_loop.intf_id) | selectattr('value.mode','defined') | map(attribute='value.mode') | default('access') }}"

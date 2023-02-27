@@ -1,0 +1,42 @@
+---
+- name: set interface desc based on cdp neighbors
+  hosts: nexus9k1
+  gather_facts: false
+  vars:
+  tasks:
+  - name: Gather all legacy facts
+    cisco.nxos.nxos_facts:
+      gather_subset: all
+    register: gather_info
+
+#  - name: debug gather_info
+#    ansible.builtin.debug:
+#      var: gather_info
+
+#  - name: debug gather_info filtered
+#    ansible.builtin.debug:
+#      msg: "{{ item.key }} - {{ item.value.mode | default('nothing') }}"
+#    loop: "{{ gather_info.ansible_facts.ansible_net_interfaces | dict2items | selectattr('value.mode','defined') | selectattr('value.mode','search','trunk') }}"
+
+  - name: gather cdp neighbors
+    nxos_command:
+      commands: "show cdp neighbors | json"
+    register: cdp_neighbors
+
+
+#  - name: debug cdp_neighbors crazy filter stuff
+##    when: gather_info.ansible_facts.ansible_net_interfaces | dict2items | selectattr('key','search',item.intf_id) | selectattr('value.mode','defined') | map(attribute='value.mode') | default('access') == 'trunk'
+##    when: gather_info.ansible_facts.ansible_net_interfaces | dict2items | selectattr('key','search',item.intf_id) | selectattr('value.mode','defined') | map(attribute='value.mode') | default('access') == "trunk"
+#    when: gather_info.ansible_facts.ansible_net_interfaces | dict2items | selectattr('key','equalto',item.intf_id) | selectattr('value.mode','defined') | map(attribute='value.mode') | default('access') == "trunk"
+#    ansible.builtin.debug:
+##      var: cdp_neighbors.stdout[0].TABLE_cdp_neighbor_brief_info
+##      var: gather_info.ansible_facts.ansible_net_interfaces | dict2items | selectattr('key','search',item.intf_id) | selectattr('value.mode','defined') | map(attribute='value.mode') | default('access')
+#      msg: "{{ device_id }} on {{ item.intf_id }}"
+#    loop: "{{ cdp_neighbors.stdout[0].TABLE_cdp_neighbor_brief_info.ROW_cdp_neighbor_brief_info }}"
+
+  - name: loop through cdp neighbors and call the task file to further search for trunks
+    ansible.builtin.include_tasks:
+      file: cisco-nxos-cdp-interface-taskfile.yml
+    loop: "{{ cdp_neighbors.stdout[0].TABLE_cdp_neighbor_brief_info.ROW_cdp_neighbor_brief_info }}"
+    loop_control:
+      loop_var: cdp_loop
